@@ -1,0 +1,36 @@
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
+from typing import List, TYPE_CHECKING
+
+from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.workspace import Workspace
+    from app.models.workspace_member import WorkspaceMember
+    from app.models.task import Task
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+    # Relationships
+    owned_workspaces: Mapped[List["Workspace"]] = relationship(
+        back_populates="owner",
+        foreign_keys="Workspace.owner_id"
+    )
+    owned_tasks: Mapped[List["Task"]] = relationship(
+        back_populates="owner",
+        foreign_keys="Task.owner_id"
+    )
+    assigned_tasks: Mapped[List["Task"]] = relationship(
+        back_populates="assignee",
+        foreign_keys="Task.assignee_id"
+    )
+    workspace_memberships: Mapped[List["WorkspaceMember"]] = relationship(back_populates="user")
