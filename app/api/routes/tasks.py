@@ -1,21 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
-from app.core.database import get_db
-from app.api.dependencies import get_current_user
+from app.api.dependencies import SessionDep, CurrentUser
 from app.crud.task import create_task, get_task_by_id, get_tasks_by_owner, update_task, delete_task
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
-from app.models.user import User
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[TaskResponse])
 def list_tasks(
+    db: SessionDep,
+    current_user: CurrentUser,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """Get all tasks for the current user."""
     tasks = get_tasks_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
@@ -25,8 +22,8 @@ def list_tasks(
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_new_task(
     task_data: TaskCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: SessionDep,
+    current_user: CurrentUser
 ):
     """Create a new task."""
     task = create_task(db, task_data, owner_id=current_user.id)
@@ -36,8 +33,8 @@ def create_new_task(
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(
     task_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: SessionDep,
+    current_user: CurrentUser
 ):
     """Get a specific task by ID."""
     task = get_task_by_id(db, task_id)
@@ -58,8 +55,8 @@ def get_task(
 def update_existing_task(
     task_id: int,
     task_data: TaskUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: SessionDep,
+    current_user: CurrentUser
 ):
     """Update a task."""
     task = get_task_by_id(db, task_id)
@@ -80,8 +77,8 @@ def update_existing_task(
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_existing_task(
     task_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: SessionDep,
+    current_user: CurrentUser
 ):
     """Delete a task."""
     task = get_task_by_id(db, task_id)
