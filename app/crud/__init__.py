@@ -1,3 +1,3 @@
-from app.crud import user, task
+from app.crud import user, task, workspace
 
-__all__ = ["user", "task"]
+__all__ = ["user", "task", "workspace"]
