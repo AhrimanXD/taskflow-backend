@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.task import Task
     from app.models.workspace_member import WorkspaceMember
+    from app.models.invitation import Invitation
 
 
 class Workspace(Base):
@@ -24,3 +25,4 @@ class Workspace(Base):
     owner: Mapped["User"] = relationship(back_populates="owned_workspaces", foreign_keys=[owner_id])
     tasks: Mapped[List["Task"]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
     members: Mapped[List["WorkspaceMember"]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
+    invites: Mapped[List["Invitation"]] = relationship(back_populates="workspace", cascade="all, delete-orphan")
