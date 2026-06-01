@@ -21,6 +21,12 @@ class UserResponse(BaseModel):
     username: str
     created_at: datetime
 
+class UserPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    username: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
