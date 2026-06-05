@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.crud.workspace import get_workspace_by_id
 from app.models.workspace import Workspace
+from app.models.workspace_member import RoleEnum, WorkspaceMember
 
 
 def get_workspace_or_raise(
@@ -24,3 +25,29 @@ def get_workspace_or_raise(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this workspace")
 
     return workspace
+
+def get_member_role_or_raise(db: Session,
+    workspace_id: int,
+    user_id: int,
+) -> RoleEnum:
+    workspace = get_workspace_by_id(db, workspace_id)
+    if not workspace:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    member = (db.query(WorkspaceMember)
+            .filter(WorkspaceMember.workspace_id == workspace_id,
+                   WorkspaceMember.user_id == user_id
+            ).first())
+    if not member:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this workspace")
+    return member.role
+
+def require_role_or_raise(db: Session,
+    workspace_id: int,
+    user_id: int,
+    allowed: set[RoleEnum]
+) -> RoleEnum:
+    role = get_member_role_or_raise(db, workspace_id, user_id)
+    if role not in allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You don't have permission to perform this action")
+    return role
