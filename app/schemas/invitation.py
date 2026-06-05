@@ -8,11 +8,17 @@ class InvitationCreate(BaseModel):
     invitee_email: EmailStr
     role: InviteRole = InviteRole.MEMBER
 
-class InvitationResponse(BaseModel):
+class InvitationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     id: int
-    invitee: UserPublic
     inviter: UserPublic
-    workspace: WorkspaceResponse 
+    role: InviteRole
     status: Status
     created_at: datetime
+
+class InvitationReceived(InvitationBase):
+    workspace: WorkspaceResponse 
+
+class InvitationForWorkspace(InvitationBase):
+    invitee: UserPublic
