@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from pydantic import EmailStr
 from app.crud.invitation import create_invitation, get_invitation_by_id, update_invitation_status
-from app.models.workspace_member import RoleEnum
+from app.models.workspace_member import RoleEnum, WorkspaceMember
 from app.services.workspace import require_role_or_raise
 from app.models.invitation import Invitation, InviteRole, Status
 from sqlalchemy.orm import Session
@@ -56,7 +56,7 @@ def get_invitation_or_raise(db: Session, invite_id):
 
 def decline_invitation_service(db: Session,
                                user_id: int,
-                               invite_id: int):
+                               invite_id: int) -> Invitation:
     invitation = get_invitation_or_raise(db, invite_id)
     if invitation.invitee_id != user_id:
         raise HTTPException(
@@ -64,15 +64,45 @@ def decline_invitation_service(db: Session,
                 detail = "Unauthorized Access, Invitation not for user"
                 )
     assert_pending(invitation)
-    update_invitation_status(db, invitation, Status.DECLINED)
+    return update_invitation_status(db, invitation, Status.DECLINED)
 
 def revoke_invitation_service(db: Session,
                               invite_id: int,
-                              user_id: int):
+                              user_id: int) -> Invitation:
     invitation = get_invitation_or_raise(db, invite_id)
     require_role_or_raise(db, invitation.workspace_id, user_id, allowed={RoleEnum.ADMIN, RoleEnum.OWNER})
     assert_pending(invitation)
-    update_invitation_status(db, invitation, Status.REVOKED)
+    return update_invitation_status(db, invitation, Status.REVOKED)
+
+
+def accept_invitation_service(db: Session,
+                              user_id: int,
+                              invite_id: int) -> Invitation:
+    invitation = get_invitation_or_raise(db, invite_id)
+    if invitation.invitee_id != user_id:
+        raise HTTPException(
+                status_code = status.HTTP_403_FORBIDDEN,
+                detail = "Unauthorized Access, Invitation not for user"
+                )
+    assert_pending(invitation)
+    try:
+        invitation.status = Status.ACCEPTED
+        member = WorkspaceMember(user_id = user_id, workspace_id = invitation.workspace_id, role = RoleEnum(invitation.role.value))
+        db.add(member)
+        db.commit()
+        db.refresh(invitation)
+        return invitation
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+                status_code = status.HTTP_409_CONFLICT,
+                detail = "User is already a member"
+                )
+    except Exception:
+        db.rollback()
+        raise
+
+
 
 
 
