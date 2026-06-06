@@ -1,3 +1,3 @@
-from app.api.routes import auth, tasks, workspace
+from app.api.routes import auth, tasks, workspace, invitation
 
-__all__ = ["auth", "tasks", "workspace"]
+__all__ = ["auth", "tasks", "workspace", "invitation"]
