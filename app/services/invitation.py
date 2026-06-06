@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from pydantic import EmailStr
-from app.crud.invitation import create_invitation, get_invitation_by_id, update_invitation_status
+from app.crud.invitation import create_invitation, get_invitation_by_id, update_invitation_status, get_user_invitations, get_workspace_invitations
 from app.models.workspace_member import RoleEnum, WorkspaceMember
 from app.services.workspace import require_role_or_raise
 from app.models.invitation import Invitation, InviteRole, Status
@@ -102,7 +102,11 @@ def accept_invitation_service(db: Session,
         db.rollback()
         raise
 
+def get_workspace_invitations_service(db, workspace_id, user_id,
+                                      status_filter: Status | None = None) -> list[Invitation]:
+    require_role_or_raise(db, workspace_id, user_id, allowed={RoleEnum.ADMIN, RoleEnum.OWNER})
+    return get_workspace_invitations(db, workspace_id, status_filter)
 
-
-
-
+def get_user_invitations_service(db, user_id,
+                                 status_filter: Status | None = None) -> list[Invitation]:
+    return get_user_invitations(db, user_id, status_filter)

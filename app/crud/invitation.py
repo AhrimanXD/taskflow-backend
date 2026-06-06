@@ -5,17 +5,22 @@ from app.models.invitation import Invitation, InviteRole, Status
 def get_invitation_by_id(db: Session, invite_id: int) -> Invitation | None:
     return db.get(Invitation, invite_id)
 
-def get_workspace_invitations(db: Session, workspace_id: int) -> list[Invitation]:
-    return db.query(Invitation).filter(Invitation.workspace_id == workspace_id).options(
-            joinedload(Invitation.invitee),
-            joinedload(Invitation.inviter)
-            ).all()
+def get_workspace_invitations(db, workspace_id, status_filter: Status | None = None):
+    query = (db.query(Invitation)
+             .options(joinedload(Invitation.invitee), joinedload(Invitation.inviter))
+             .filter(Invitation.workspace_id == workspace_id))
+    if status_filter is not None:
+        query = query.filter(Invitation.status == status_filter)
+    return query.all()
 
-def get_user_invitations(db: Session, user_id: int) -> list[Invitation]:
-    return db.query(Invitation).filter(Invitation.invitee_id == user_id).options(
-            joinedload(Invitation.inviter),
-            joinedload(Invitation.workspace)
-            ).all()
+
+def get_user_invitations(db: Session, user_id: int, status_filter: Status | None = None) -> list[Invitation]:
+    query = (db.query(Invitation)
+             .options(joinedload(Invitation.workspace), joinedload(Invitation.inviter))
+             .filter(Invitation.invitee_id == user_id))
+    if status_filter is not None:
+        query = query.filter(Invitation.status == status_filter)
+    return query.all()
 
 
 def create_invitation(db: Session, inviter_id: int, workspace_id: int, invitee_id: int, role: InviteRole) -> Invitation:
