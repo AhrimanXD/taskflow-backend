@@ -2,8 +2,9 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.crud.workspace import get_workspace_by_id
+from app.crud.member import get_member
 from app.models.workspace import Workspace
-from app.models.workspace_member import RoleEnum, WorkspaceMember
+from app.models.workspace_member import RoleEnum
 
 
 def get_workspace_or_raise(
@@ -33,10 +34,7 @@ def get_member_role_or_raise(db: Session,
     workspace = get_workspace_by_id(db, workspace_id)
     if not workspace:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
-    member = (db.query(WorkspaceMember)
-            .filter(WorkspaceMember.workspace_id == workspace_id,
-                   WorkspaceMember.user_id == user_id
-            ).first())
+    member = get_member(db, workspace_id, user_id)
     if not member:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this workspace")
     return member.role
