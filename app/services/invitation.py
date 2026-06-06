@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from pydantic import EmailStr
-from app.crud.invitation import create_invitation
+from app.crud.invitation import create_invitation, get_invitation_by_id, update_invitation_status
 from app.models.workspace_member import RoleEnum
 from app.services.workspace import require_role_or_raise
-from app.models.invitation import InviteRole
+from app.models.invitation import Invitation, InviteRole, Status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.crud.user import get_user_by_email
@@ -19,12 +19,12 @@ def create_invitation_service(db: Session,
     invitee = get_user_by_email(db, invitee_email)
     if not invitee:
         raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code = status.HTTP_404_NOT_FOUND,
                 detail = "User not found"
                 )
     if get_member(db, workspace_id, invitee.id):
         raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+                status_code = status.HTTP_409_CONFLICT,
                 detail="User is already a member of the workspace"
                 )
     try:
@@ -32,9 +32,47 @@ def create_invitation_service(db: Session,
         return invitation
     except IntegrityError:
         raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+                status_code = status.HTTP_409_CONFLICT,
                 detail = "User already has pending invite request"
                 )
 
-    
+def assert_pending(invitation: Invitation):
+    if invitation.status != Status.PENDING:
+        raise HTTPException(
+                status_code = status.HTTP_409_CONFLICT,
+                detail = "Cannot perform operation on an invite that is not pending"
+                )
+
+
+def get_invitation_or_raise(db: Session, invite_id):
+    invitation = get_invitation_by_id(db, invite_id)
+    if not invitation:
+        raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "Invite does not exist"
+                )
+    return invitation
+
+
+def decline_invitation_service(db: Session,
+                               user_id: int,
+                               invite_id: int):
+    invitation = get_invitation_or_raise(db, invite_id)
+    if invitation.invitee_id != user_id:
+        raise HTTPException(
+                status_code = status.HTTP_403_FORBIDDEN,
+                detail = "Unauthorized Access, Invitation not for user"
+                )
+    assert_pending(invitation)
+    update_invitation_status(db, invitation, Status.DECLINED)
+
+def revoke_invitation_service(db: Session,
+                              invite_id: int,
+                              user_id: int):
+    invitation = get_invitation_or_raise(db, invite_id)
+    require_role_or_raise(db, invitation.workspace_id, user_id, allowed={RoleEnum.ADMIN, RoleEnum.OWNER})
+    assert_pending(invitation)
+    update_invitation_status(db, invitation, Status.REVOKED)
+
+
 
