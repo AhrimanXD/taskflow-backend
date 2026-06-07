@@ -1,11 +1,19 @@
-from pydantic import BaseModel, Field, field_validator
+from enum import Enum
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional
 
+class TaskStatusEnum(str, Enum):
+    PENDING = "pending"
+    ONGOING = "ongoing"
+    COMPLETED = "completed"
+
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255) 
-    description: Optional[str] = None
-    status: str = "pending"
+    description: str | None = None
+    status: TaskStatusEnum = TaskStatusEnum.PENDING
+    assignee_id: int | None = None
+    due_date: datetime | None = None
 
     @field_validator('title',mode='before')
     @classmethod
@@ -39,17 +47,21 @@ def strip_or_none(v):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
+    status: TaskStatusEnum | None = None
     assignee_id: int | None = None
+    due_date: datetime | None = None
     
 
-    @field_validator("title", "description", "status", mode="before")
+    @field_validator("title", "description", mode="before")
     @classmethod
     def no_blank_strings(cls, v):
         return strip_or_none(v)
 
 
 class TaskResponse(BaseModel):
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     description: Optional[str]
@@ -57,8 +69,7 @@ class TaskResponse(BaseModel):
     owner_id: int
     assignee_id: int | None
     workspace_id: int | None
+    due_date: datetime | None
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
