@@ -9,7 +9,7 @@ def get_task_by_id(db: Session, task_id: int) -> Task | None:
 
 
 def get_tasks_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> list[Task]:
-    return db.query(Task).filter(Task.owner_id == owner_id).offset(skip).limit(limit).all()
+    return db.query(Task).filter(Task.owner_id == owner_id, Task.workspace_id.is_(None)).offset(skip).limit(limit).all()
 
 
 def create_task(db: Session, task_data: TaskCreate, owner_id: int) -> Task:
