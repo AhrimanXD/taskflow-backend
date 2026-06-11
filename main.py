@@ -26,6 +26,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(workspace.router, prefix="/api/workspaces", tags=["Workspaces"])
 app.include_router(invitation.router, prefix="/api")
+app.include_router(workspace_tasks.router, prefix="/api")
 
 
 @app.get("/")

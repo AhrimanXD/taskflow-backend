@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
 from app.api.dependencies import SessionDep, CurrentUser
-from app.crud.task import create_task, get_task_by_id, get_tasks_by_owner, update_task, delete_task
+from app.crud.task import create_task, get_tasks_by_owner, update_task, delete_task
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
+from app.services.task import get_personal_task_or_raise
 
 router = APIRouter()
 
@@ -14,7 +15,8 @@ def list_tasks(
     skip: int = 0,
     limit: int = 100,
 ):
-    """Get all tasks for the current user."""
+    """Get the current user's PERSONAL tasks (workspace tasks live under
+    /api/workspaces/{id}/tasks)."""
     tasks = get_tasks_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
     return tasks
 
@@ -25,7 +27,9 @@ def create_new_task(
     db: SessionDep,
     current_user: CurrentUser
 ):
-    """Create a new task."""
+    """Create a personal task. Personal tasks are not assignable, so any
+    assignee_id in the body is ignored."""
+    task_data = task_data.model_copy(update={"assignee_id": None})
     task = create_task(db, task_data, owner_id=current_user.id)
     return task
 
@@ -36,19 +40,8 @@ def get_task(
     db: SessionDep,
     current_user: CurrentUser
 ):
-    """Get a specific task by ID."""
-    task = get_task_by_id(db, task_id)
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
-    if task.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to access this task"
-        )
-    return task
+    """Get a specific personal task by ID."""
+    return get_personal_task_or_raise(db, task_id, current_user.id)
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
@@ -58,17 +51,12 @@ def update_existing_task(
     db: SessionDep,
     current_user: CurrentUser
 ):
-    """Update a task."""
-    task = get_task_by_id(db, task_id)
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
-    if task.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to modify this task"
+    """Update a personal task. assignee_id is ignored — personal tasks are
+    not assignable."""
+    task = get_personal_task_or_raise(db, task_id, current_user.id)
+    if "assignee_id" in task_data.model_fields_set:
+        task_data = TaskUpdate(
+            **task_data.model_dump(exclude_unset=True, exclude={"assignee_id"})
         )
     updated_task = update_task(db, task, task_data)
     return updated_task
@@ -80,17 +68,7 @@ def delete_existing_task(
     db: SessionDep,
     current_user: CurrentUser
 ):
-    """Delete a task."""
-    task = get_task_by_id(db, task_id)
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
-    if task.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to delete this task"
-        )
+    """Delete a personal task."""
+    task = get_personal_task_or_raise(db, task_id, current_user.id)
     delete_task(db, task)
     return None
