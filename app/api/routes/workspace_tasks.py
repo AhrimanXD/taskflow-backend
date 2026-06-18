@@ -11,7 +11,7 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/tasks", tags=["Workspace T
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_workspace_tasks(
+async def list_workspace_tasks(
     workspace_id: int,
     db: SessionDep,
     current_user: CurrentUser,
@@ -24,7 +24,7 @@ def list_workspace_tasks(
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_workspace_task(
+async def create_workspace_task(
     workspace_id: int,
     task_data: TaskCreate,
     db: SessionDep,
@@ -39,7 +39,7 @@ def create_workspace_task(
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_workspace_task(
+async def get_workspace_task(
     workspace_id: int,
     task_id: int,
     db: SessionDep,
@@ -51,7 +51,7 @@ def get_workspace_task(
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
-def update_workspace_task(
+async def update_workspace_task(
     workspace_id: int,
     task_id: int,
     task_data: TaskUpdate,
@@ -68,7 +68,7 @@ def update_workspace_task(
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_workspace_task(
+async def delete_workspace_task(
     workspace_id: int,
     task_id: int,
     db: SessionDep,

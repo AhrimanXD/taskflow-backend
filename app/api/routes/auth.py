@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreate, db: SessionDep):
+async def register(user_data: UserCreate, db: SessionDep):
     """Register a new user."""
     # Check if email already exists
     if get_user_by_email(db, user_data.email):
@@ -34,7 +34,7 @@ def register(user_data: UserCreate, db: SessionDep):
 
 
 @router.post("/login", response_model=Token)
-def login(db: SessionDep, form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(db: SessionDep, form_data: OAuth2PasswordRequestForm = Depends()):
     """Login and get access token."""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -49,6 +49,6 @@ def login(db: SessionDep, form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.get("/me", response_model=UserResponse)
-def get_current_user_info(current_user: User = Depends(get_current_user)):
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current authenticated user info."""
     return current_user

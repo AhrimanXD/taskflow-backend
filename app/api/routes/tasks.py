@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(
+async def list_tasks(
     db: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,
@@ -22,7 +22,7 @@ def list_tasks(
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_new_task(
+async def create_new_task(
     task_data: TaskCreate,
     db: SessionDep,
     current_user: CurrentUser
@@ -35,7 +35,7 @@ def create_new_task(
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(
+async def get_task(
     task_id: int,
     db: SessionDep,
     current_user: CurrentUser
@@ -45,7 +45,7 @@ def get_task(
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
-def update_existing_task(
+async def update_existing_task(
     task_id: int,
     task_data: TaskUpdate,
     db: SessionDep,
@@ -63,7 +63,7 @@ def update_existing_task(
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_existing_task(
+async def delete_existing_task(
     task_id: int,
     db: SessionDep,
     current_user: CurrentUser

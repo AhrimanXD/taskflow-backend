@@ -9,7 +9,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[WorkspaceResponse])
-def list_workspaces(
+async def list_workspaces(
     db: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,
@@ -19,7 +19,7 @@ def list_workspaces(
 
 
 @router.post("", response_model=WorkspaceResponse, status_code=status.HTTP_201_CREATED)
-def create_new_workspace(
+async def create_new_workspace(
     workspace_data: WorkspaceCreate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -28,7 +28,7 @@ def create_new_workspace(
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
-def get_workspace(
+async def get_workspace(
     workspace_id: int,
     db: SessionDep,
     current_user: CurrentUser,
@@ -37,7 +37,7 @@ def get_workspace(
 
 
 @router.patch("/{workspace_id}", response_model=WorkspaceResponse)
-def update_existing_workspace(
+async def update_existing_workspace(
     workspace_id: int,
     workspace_data: WorkspaceUpdate,
     db: SessionDep,
@@ -48,7 +48,7 @@ def update_existing_workspace(
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_existing_workspace(
+async def delete_existing_workspace(
     workspace_id: int,
     db: SessionDep,
     current_user: CurrentUser,

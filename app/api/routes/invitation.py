@@ -26,7 +26,7 @@ router = APIRouter(tags=["invitations"])
     response_model=InvitationForWorkspace,
     status_code=status.HTTP_201_CREATED,
 )
-def create_invitation(
+async def create_invitation(
     workspace_id: int,
     payload: InvitationCreate,
     db: SessionDep,
@@ -45,7 +45,7 @@ def create_invitation(
     "/workspaces/{workspace_id}/invitations",
     response_model=list[InvitationForWorkspace],
 )
-def list_workspace_invitations(
+async def list_workspace_invitations(
     workspace_id: int,
     db: SessionDep,
     current_user: CurrentUser,
@@ -63,7 +63,7 @@ def list_workspace_invitations(
     "/invitations/{invite_id}/revoke",
     response_model=InvitationForWorkspace,
 )
-def revoke_invitation(
+async def revoke_invitation(
     invite_id: int,
     db: SessionDep,
     current_user: CurrentUser,
@@ -74,7 +74,7 @@ def revoke_invitation(
 # --- Invitee-scoped (the current user's own invitations) ---
 
 @router.get("/invitations", response_model=list[InvitationReceived])
-def list_my_invitations(
+async def list_my_invitations(
     db: SessionDep,
     current_user: CurrentUser,
     status_filter: InviteStatus | None = Query(default=None, alias="status"),
@@ -85,7 +85,7 @@ def list_my_invitations(
 
 
 @router.post("/invitations/{invite_id}/accept", response_model=InvitationReceived)
-def accept_invitation(
+async def accept_invitation(
     invite_id: int,
     db: SessionDep,
     current_user: CurrentUser,
@@ -94,7 +94,7 @@ def accept_invitation(
 
 
 @router.post("/invitations/{invite_id}/decline", response_model=InvitationReceived)
-def decline_invitation(
+async def decline_invitation(
     invite_id: int,
     db: SessionDep,
     current_user: CurrentUser,
