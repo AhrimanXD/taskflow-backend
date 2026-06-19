@@ -1,0 +1,66 @@
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
+from app.core.security import decode_access_token
+from app.core.database import SessionLocal
+from app.crud.member import get_member
+from app.websocket.manager import manager
+from asyncio import wait_for
+
+router = APIRouter()
+
+
+def websocket_auth(token: str, workspace_id: int, db: Session):
+    payload = decode_access_token(token)
+    if isinstance(payload, dict):
+        user_id = payload["sub"]
+        return get_member(db, workspace_id, int(user_id))
+
+
+@router.websocket("/ws/workspaces/{workspace_id}")
+async def websocket_endpoint(websocket: WebSocket, workspace_id: int):
+    # accept connection
+    await websocket.accept()
+    # wait for authentication message and set timeout
+    try:
+        auth_message = await wait_for(websocket.receive_json(), timeout=15.0)
+
+        if auth_message.get("type") != "auth":
+            await websocket.send_json(
+                {"type": "error", "detail": "First message must be auth"}
+            )
+            await websocket.close()
+            return
+        token = auth_message.get("token")
+        if not token:
+            await websocket.send_json(
+                {"type": "error", "detail": "Missing authentication token"}
+            )
+            await websocket.close()
+            return
+        with SessionLocal() as db:
+            member = websocket_auth(token, workspace_id, db)
+        if member:
+            await manager.connect(websocket, workspace_id)
+            await websocket.send_json(
+                {"type": "success", "detail": "Websocket authentication successful"}
+            )
+            while True:
+                try:
+                    await websocket.receive_text()
+                except WebSocketDisconnect:
+                    break
+        else:
+            await websocket.send_json(
+                {"type": "error", "detail": "Unauthorized Access"}
+            )
+            await websocket.close()
+    except TimeoutError:
+        await websocket.send_json({"type": "error", "detail": "timeout exceeded"})
+        await websocket.close()
+    finally:
+        await manager.disconnect(websocket, workspace_id)
+
+
+# on arrive validate token
+# then check membership before adding connection to room
+# also prepare for a disconnect error

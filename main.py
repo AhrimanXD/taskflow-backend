@@ -9,7 +9,7 @@ from app.api.routes import *
 app = FastAPI(
     title="Realtime Collaborative Task Manager",
     description="A collaborative task management API with real-time updates",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # CORS configuration
