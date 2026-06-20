@@ -6,6 +6,8 @@ from app.models.workspace_member import RoleEnum
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from app.services.task import get_workspace_task_or_raise, validate_assignee_or_raise
 from app.services.workspace import get_member_role_or_raise
+from app.websocket.manager import manager
+
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/tasks", tags=["Workspace Tasks"])
 
@@ -35,7 +37,16 @@ async def create_workspace_task(
     get_member_role_or_raise(db, workspace_id, current_user.id)
     if task_data.assignee_id is not None:
         validate_assignee_or_raise(db, workspace_id, task_data.assignee_id)
-    return create_task(db, task_data, owner_id=current_user.id, workspace_id=workspace_id)
+    task = create_task(
+        db, task_data, owner_id=current_user.id, workspace_id=workspace_id
+    )
+    event = {
+        "type": "task.created",
+        "workspace_id": workspace_id,
+        "task": TaskResponse.model_validate(task).model_dump(mode="json"),
+    }
+    await manager.broadcast(event, workspace_id)
+    return task
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
@@ -64,7 +75,14 @@ async def update_workspace_task(
     task, _ = get_workspace_task_or_raise(db, workspace_id, task_id, current_user.id)
     if task_data.assignee_id is not None:
         validate_assignee_or_raise(db, workspace_id, task_data.assignee_id)
-    return update_task(db, task, task_data)
+    task = update_task(db, task, task_data)
+    event = {
+        "type": "task.updated",
+        "workspace_id": workspace_id,
+        "task": TaskResponse.model_validate(task).model_dump(mode="json"),
+    }
+    await manager.broadcast(event, workspace_id)
+    return task
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -77,10 +95,19 @@ async def delete_workspace_task(
     """Delete a workspace task: the task's creator OR a workspace
     owner/admin. Plain members can't delete tasks they didn't create."""
     task, role = get_workspace_task_or_raise(db, workspace_id, task_id, current_user.id)
-    if task.owner_id != current_user.id and role not in {RoleEnum.OWNER, RoleEnum.ADMIN}:
+    if task.owner_id != current_user.id and role not in {
+        RoleEnum.OWNER,
+        RoleEnum.ADMIN,
+    }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the task creator or a workspace owner/admin can delete this task",
         )
     delete_task(db, task)
+    event = {
+        "type": "task.deleted",
+        "workspace_id": workspace_id,
+        "task": {"id": task_id},
+    }
+    await manager.broadcast(event, workspace_id)
     return None
