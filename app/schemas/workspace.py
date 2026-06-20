@@ -1,6 +1,8 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
+from app.models.workspace_member import RoleEnum
+from app.schemas.user import UserPublic  # wherever UserPublic actually lives
 
 
 class WorkspaceBase(BaseModel):
@@ -23,3 +25,11 @@ class WorkspaceResponse(WorkspaceBase):
     id: int
     owner_id: int
     created_at: datetime
+
+
+class WorkspaceMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    role: RoleEnum
+    user: UserPublic

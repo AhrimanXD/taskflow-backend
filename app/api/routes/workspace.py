@@ -1,9 +1,19 @@
 from fastapi import APIRouter, status
 
 from app.api.dependencies import CurrentUser, SessionDep
-from app.crud.workspace import create_workspace, delete_workspace, get_workspaces_by_user, update_workspace
-from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse, WorkspaceUpdate
-from app.services.workspace import get_workspace_or_raise
+from app.crud.workspace import (
+    create_workspace,
+    delete_workspace,
+    get_workspaces_by_user,
+    update_workspace,
+)
+from app.schemas.workspace import (
+    WorkspaceCreate,
+    WorkspaceMemberResponse,
+    WorkspaceResponse,
+    WorkspaceUpdate,
+)
+from app.services.workspace import get_workspace_members_service, get_workspace_or_raise
 
 router = APIRouter()
 
@@ -43,8 +53,12 @@ async def update_existing_workspace(
     db: SessionDep,
     current_user: CurrentUser,
 ):
-    workspace = get_workspace_or_raise(db, workspace_id, user_id=current_user.id, require_owner=True)
-    return update_workspace(db, workspace, workspace_data.model_dump(exclude_unset=True))
+    workspace = get_workspace_or_raise(
+        db, workspace_id, user_id=current_user.id, require_owner=True
+    )
+    return update_workspace(
+        db, workspace, workspace_data.model_dump(exclude_unset=True)
+    )
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -53,6 +67,15 @@ async def delete_existing_workspace(
     db: SessionDep,
     current_user: CurrentUser,
 ):
-    workspace = get_workspace_or_raise(db, workspace_id, user_id=current_user.id, require_owner=True)
+    workspace = get_workspace_or_raise(
+        db, workspace_id, user_id=current_user.id, require_owner=True
+    )
     delete_workspace(db, workspace)
     return None
+
+
+@router.get("/{workspace_id}/members", response_model=list[WorkspaceMemberResponse])
+async def list_workspace_members(
+    workspace_id: int, db: SessionDep, current_user: CurrentUser
+):
+    return get_workspace_members_service(db, workspace_id, current_user.id)
