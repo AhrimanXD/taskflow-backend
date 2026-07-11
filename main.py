@@ -29,6 +29,7 @@ app.include_router(workspace.router, prefix="/api/workspaces", tags=["Workspaces
 app.include_router(invitation.router, prefix="/api")
 app.include_router(workspace_tasks.router, prefix="/api")
 app.include_router(comments.router, prefix="/api")
+app.include_router(stats.router, prefix="/api/stats", tags=["Stats"])
 app.include_router(ws_routes.router)  # WS path already starts with /ws — no prefix
 
 
