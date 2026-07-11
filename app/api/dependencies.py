@@ -26,7 +26,12 @@ def get_current_user(
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
-    
+
+    # A refresh token decodes fine (same secret) but must never authenticate a
+    # request — only the short-lived access token may.
+    if payload.get("type") == "refresh":
+        raise credentials_exception
+
     user_id: int | None = payload.get("sub")
     if user_id is None:
         raise credentials_exception

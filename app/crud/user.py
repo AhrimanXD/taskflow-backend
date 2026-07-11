@@ -41,3 +41,24 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
     if not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+def update_user(db: Session, user: User, fields: dict) -> User:
+    """Apply a partial profile update. Uniqueness is checked by the route before
+    calling this; IntegrityError is re-raised as a last-resort guard."""
+    for field, value in fields.items():
+        setattr(user, field, value)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+    db.refresh(user)
+    return user
+
+
+def change_password(db: Session, user: User, new_password: str) -> User:
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
