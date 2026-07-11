@@ -8,6 +8,7 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.workspace import Workspace
+    from app.models.comment import Comment
 
 
 class Task(Base):
@@ -34,3 +35,6 @@ class Task(Base):
     workspace: Mapped["Workspace"] = relationship(back_populates="tasks")
     assignee: Mapped["User"] = relationship(back_populates="assigned_tasks", foreign_keys=[assignee_id])
     owner: Mapped["User"] = relationship(back_populates="owned_tasks", foreign_keys=[owner_id])
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="task", cascade="all, delete-orphan", passive_deletes=True
+    )

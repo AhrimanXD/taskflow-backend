@@ -7,6 +7,10 @@ from app.crud.workspace import (
     get_workspaces_by_user,
     update_workspace,
 )
+from app.crud.activity import get_workspace_activity
+from app.crud.user import get_user_by_id
+from app.schemas.activity import ActivityResponse
+from app.services.activity import record_and_broadcast
 from app.schemas.workspace import (
     MemberRoleUpdate,
     WorkspaceCreate,
@@ -15,6 +19,7 @@ from app.schemas.workspace import (
     WorkspaceUpdate,
 )
 from app.services.workspace import (
+    get_member_role_or_raise,
     get_workspace_members_service,
     get_workspace_or_raise,
     leave_workspace_service,
@@ -96,6 +101,15 @@ async def leave_workspace(
 ):
     """Leave a workspace. The owner can't leave (409)."""
     leave_workspace_service(db, workspace_id, current_user.id)
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="member.left",
+        object_type="member",
+        object_id=current_user.id,
+        summary="left the workspace",
+    )
     return None
 
 
@@ -107,7 +121,17 @@ async def remove_workspace_member(
 ):
     """Remove (kick) a member. Owner/admin only; owner is protected and admins
     can't remove other admins."""
+    target = get_user_by_id(db, user_id)
     remove_member_service(db, workspace_id, current_user.id, user_id)
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="member.removed",
+        object_type="member",
+        object_id=user_id,
+        summary=f"removed {target.username if target else 'a member'}",
+    )
     return None
 
 
@@ -122,6 +146,29 @@ async def change_member_role(
     current_user: CurrentUser,
 ):
     """Promote/demote a member between admin and member. Owner only."""
-    return update_member_role_service(
+    member = update_member_role_service(
         db, workspace_id, current_user.id, user_id, body.role
     )
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="member.role_changed",
+        object_type="member",
+        object_id=user_id,
+        summary=f"changed {member.user.username}'s role to {body.role.value}",
+    )
+    return member
+
+
+@router.get("/{workspace_id}/activity", response_model=list[ActivityResponse])
+async def list_workspace_activity(
+    workspace_id: int,
+    db: SessionDep,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 50,
+):
+    """Recent activity in a workspace (newest first). Any member."""
+    get_member_role_or_raise(db, workspace_id, current_user.id)
+    return get_workspace_activity(db, workspace_id, skip=skip, limit=limit)

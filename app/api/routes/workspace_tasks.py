@@ -5,6 +5,7 @@ from app.api.dependencies import CurrentUser, SessionDep
 from app.crud.task import create_task, delete_task, get_tasks_by_workspace, update_task
 from app.models.workspace_member import RoleEnum
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from app.services.activity import record_and_broadcast
 from app.services.task import (
     check_task_version_or_conflict,
     get_workspace_task_or_raise,
@@ -51,6 +52,15 @@ async def create_workspace_task(
         "task": TaskResponse.model_validate(task).model_dump(mode="json"),
     }
     await manager.broadcast(event, workspace_id)
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="task.created",
+        object_type="task",
+        object_id=task.id,
+        summary=f'created "{task.title}"',
+    )
     return task
 
 
@@ -102,6 +112,23 @@ async def update_workspace_task(
         "task": TaskResponse.model_validate(task).model_dump(mode="json"),
     }
     await manager.broadcast(event, workspace_id)
+    # Describe the edit from the fields the client actually sent (version aside).
+    changed = task_data.model_fields_set - {"version"}
+    if "status" in changed and task_data.status is not None:
+        summary = f'moved "{task.title}" to {task_data.status.value}'
+    elif "assignee_id" in changed:
+        summary = f'reassigned "{task.title}"'
+    else:
+        summary = f'updated "{task.title}"'
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="task.updated",
+        object_type="task",
+        object_id=task.id,
+        summary=summary,
+    )
     return task
 
 
@@ -123,6 +150,7 @@ async def delete_workspace_task(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the task creator or a workspace owner/admin can delete this task",
         )
+    title = task.title
     delete_task(db, task)
     event = {
         "type": "task.deleted",
@@ -130,4 +158,13 @@ async def delete_workspace_task(
         "task": {"id": task_id},
     }
     await manager.broadcast(event, workspace_id)
+    await record_and_broadcast(
+        db,
+        workspace_id=workspace_id,
+        actor_id=current_user.id,
+        action="task.deleted",
+        object_type="task",
+        object_id=task_id,
+        summary=f'deleted "{title}"',
+    )
     return None
