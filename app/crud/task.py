@@ -29,6 +29,9 @@ def create_task(db: Session, task_data: TaskCreate, owner_id: int, workspace_id:
 
 def update_task(db: Session, task: Task, task_data: TaskUpdate) -> Task:
     update_data = task_data.model_dump(exclude_unset=True)
+    # `version` is a control field, not task data — SQLAlchemy's version_id_col
+    # owns the column and bumps it on flush. Never setattr it ourselves.
+    update_data.pop("version", None)
     for field, value in update_data.items():
         setattr(task, field, value)
     db.commit()

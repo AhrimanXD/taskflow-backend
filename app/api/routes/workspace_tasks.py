@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy.orm.exc import StaleDataError
 
 from app.api.dependencies import CurrentUser, SessionDep
 from app.crud.task import create_task, delete_task, get_tasks_by_workspace, update_task
 from app.models.workspace_member import RoleEnum
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
-from app.services.task import get_workspace_task_or_raise, validate_assignee_or_raise
+from app.services.task import (
+    check_task_version_or_conflict,
+    get_workspace_task_or_raise,
+    validate_assignee_or_raise,
+)
 from app.services.workspace import get_member_role_or_raise
 from app.websocket.manager import manager
 
@@ -73,9 +78,24 @@ async def update_workspace_task(
     assignee_id: explicit null = unassign (allowed); a non-null assignee is
     validated as an active workspace member."""
     task, _ = get_workspace_task_or_raise(db, workspace_id, task_id, current_user.id)
+    # OCC: reject a stale edit with the current state before we touch anything.
+    check_task_version_or_conflict(task, task_data.version)
     if task_data.assignee_id is not None:
         validate_assignee_or_raise(db, workspace_id, task_data.assignee_id)
-    task = update_task(db, task, task_data)
+    try:
+        task = update_task(db, task, task_data)
+    except StaleDataError:
+        # A concurrent commit slipped in between our load and flush. Surface the
+        # same 409 the pre-check uses, with the freshly-current task.
+        db.rollback()
+        task, _ = get_workspace_task_or_raise(db, workspace_id, task_id, current_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "This task was changed by someone else. Please review and retry.",
+                "current": TaskResponse.model_validate(task).model_dump(mode="json"),
+            },
+        )
     event = {
         "type": "task.updated",
         "workspace_id": workspace_id,

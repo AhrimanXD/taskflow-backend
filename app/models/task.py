@@ -17,12 +17,18 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(255), index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="pending")
+    priority: Mapped[str] = mapped_column(String(50), default="medium", server_default="medium")
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
     workspace_id: Mapped[int | None] = mapped_column(ForeignKey("workspaces.id"), nullable=True)
     due_date: Mapped[datetime] = mapped_column(nullable=True)
+    # Optimistic concurrency: SQLAlchemy auto-increments this on every UPDATE and
+    # adds `WHERE version = :old` — a stale write matches 0 rows -> StaleDataError.
+    version: Mapped[int] = mapped_column(nullable=False, default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __mapper_args__ = {"version_id_col": version}
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship(back_populates="tasks")

@@ -5,7 +5,33 @@ from app.crud.member import get_member
 from app.crud.task import get_task_by_id
 from app.models.task import Task
 from app.models.workspace_member import RoleEnum
+from app.schemas.task import TaskResponse
 from app.services.workspace import get_member_role_or_raise
+
+
+def check_task_version_or_conflict(task: Task, expected_version: int | None) -> None:
+    """Optimistic-concurrency pre-check for workspace task edits.
+
+    The client must send the `version` it last saw. If it's missing -> 400
+    (the client didn't opt into OCC). If it's stale -> 409 with the *current*
+    task in the body, so the frontend can show 'this changed — review & retry'
+    instead of silently clobbering the other member's edit. The true
+    read-then-commit race is still caught separately by version_id_col
+    (StaleDataError) in the route.
+    """
+    if expected_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="version is required for workspace task updates",
+        )
+    if task.version != expected_version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "This task was changed by someone else. Please review and retry.",
+                "current": TaskResponse.model_validate(task).model_dump(mode="json"),
+            },
+        )
 
 
 def get_personal_task_or_raise(db: Session, task_id: int, user_id: int) -> Task:
