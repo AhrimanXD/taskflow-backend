@@ -10,6 +10,7 @@ from app.crud.comment import (
 from app.models.workspace_member import RoleEnum
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.services.activity import record_and_broadcast
+from app.services.notification import notify
 from app.services.task import get_workspace_task_or_raise
 from app.websocket.manager import manager
 
@@ -58,6 +59,17 @@ async def add_comment(
         object_id=task_id,
         summary=f'commented on "{task.title}"',
     )
+    # Notify the people who care about this task: its creator and assignee
+    # (never the commenter themselves — notify() drops self-notifications).
+    for rid in {task.owner_id, task.assignee_id} - {None}:
+        await notify(
+            db,
+            recipient_id=rid,
+            actor_id=current_user.id,
+            type="comment.created",
+            message=f'{current_user.username} commented on "{task.title}"',
+            workspace_id=workspace_id,
+        )
     return comment
 
 

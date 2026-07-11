@@ -6,6 +6,7 @@ from app.api.routes import (
     workspace_tasks,
     comments,
     stats,
+    notifications,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "workspace_tasks",
     "comments",
     "stats",
+    "notifications",
 ]

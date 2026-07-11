@@ -5,6 +5,7 @@ from app.models.workspace_member import WorkspaceMember
 from app.models.invitation import Invitation
 from app.models.comment import Comment
 from app.models.activity import Activity
+from app.models.notification import Notification
 __all__ = [
     "User",
     "Task",
@@ -13,4 +14,5 @@ __all__ = [
     "Invitation",
     "Comment",
     "Activity",
+    "Notification",
 ]

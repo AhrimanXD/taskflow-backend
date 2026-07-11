@@ -6,6 +6,7 @@ from app.crud.task import create_task, delete_task, get_tasks_by_workspace, upda
 from app.models.workspace_member import RoleEnum
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from app.services.activity import record_and_broadcast
+from app.services.notification import notify
 from app.services.task import (
     check_task_version_or_conflict,
     get_workspace_task_or_raise,
@@ -61,6 +62,15 @@ async def create_workspace_task(
         object_id=task.id,
         summary=f'created "{task.title}"',
     )
+    if task.assignee_id is not None:
+        await notify(
+            db,
+            recipient_id=task.assignee_id,
+            actor_id=current_user.id,
+            type="task.assigned",
+            message=f'{current_user.username} assigned you "{task.title}"',
+            workspace_id=workspace_id,
+        )
     return task
 
 
@@ -129,6 +139,15 @@ async def update_workspace_task(
         object_id=task.id,
         summary=summary,
     )
+    if "assignee_id" in changed and task.assignee_id is not None:
+        await notify(
+            db,
+            recipient_id=task.assignee_id,
+            actor_id=current_user.id,
+            type="task.assigned",
+            message=f'{current_user.username} assigned you "{task.title}"',
+            workspace_id=workspace_id,
+        )
     return task
 
 

@@ -11,6 +11,7 @@ from app.crud.activity import get_workspace_activity
 from app.crud.user import get_user_by_id
 from app.schemas.activity import ActivityResponse
 from app.services.activity import record_and_broadcast
+from app.services.notification import notify
 from app.schemas.workspace import (
     MemberRoleUpdate,
     WorkspaceCreate,
@@ -132,6 +133,14 @@ async def remove_workspace_member(
         object_id=user_id,
         summary=f"removed {target.username if target else 'a member'}",
     )
+    await notify(
+        db,
+        recipient_id=user_id,
+        actor_id=current_user.id,
+        type="member.removed",
+        message=f"{current_user.username} removed you from a workspace",
+        workspace_id=None,
+    )
     return None
 
 
@@ -157,6 +166,14 @@ async def change_member_role(
         object_type="member",
         object_id=user_id,
         summary=f"changed {member.user.username}'s role to {body.role.value}",
+    )
+    await notify(
+        db,
+        recipient_id=user_id,
+        actor_id=current_user.id,
+        type="member.role_changed",
+        message=f"{current_user.username} changed your role to {body.role.value}",
+        workspace_id=workspace_id,
     )
     return member
 
