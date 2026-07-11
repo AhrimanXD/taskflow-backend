@@ -33,3 +33,7 @@ class WorkspaceMemberResponse(BaseModel):
     user_id: int
     role: RoleEnum
     user: UserPublic
+
+
+class MemberRoleUpdate(BaseModel):
+    role: RoleEnum  # OWNER is rejected in the service — ownership transfer is separate

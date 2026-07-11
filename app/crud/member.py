@@ -19,3 +19,15 @@ def get_workspace_members(db: Session, workspace_id: int) -> list[WorkspaceMembe
         .filter(WorkspaceMember.workspace_id == workspace_id)
         .options(selectinload(WorkspaceMember.user))
     ).all()
+
+
+def remove_member(db: Session, member: WorkspaceMember) -> None:
+    db.delete(member)
+    db.commit()
+
+
+def update_member_role(db: Session, member: WorkspaceMember, role) -> WorkspaceMember:
+    member.role = role
+    db.commit()
+    db.refresh(member)
+    return member
