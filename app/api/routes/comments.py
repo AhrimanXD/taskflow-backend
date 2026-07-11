@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import CurrentUser, SessionDep
@@ -7,6 +9,7 @@ from app.crud.comment import (
     get_comment_by_id,
     get_comments_by_task,
 )
+from app.crud.member import get_workspace_members
 from app.models.workspace_member import RoleEnum
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.services.activity import record_and_broadcast
@@ -18,6 +21,20 @@ router = APIRouter(
     prefix="/workspaces/{workspace_id}/tasks/{task_id}/comments",
     tags=["Comments"],
 )
+
+_MENTION_RE = re.compile(r"@(\w+)")
+
+
+def _mentioned_user_ids(body: str, members) -> set[int]:
+    """Resolve @username tokens in a comment against the workspace's members
+    (case-insensitive). Unknown handles are ignored."""
+    by_name = {m.user.username.lower(): m.user_id for m in members}
+    ids = set()
+    for handle in set(_MENTION_RE.findall(body)):
+        uid = by_name.get(handle.lower())
+        if uid is not None:
+            ids.add(uid)
+    return ids
 
 
 @router.get("", response_model=list[CommentResponse])
@@ -59,9 +76,21 @@ async def add_comment(
         object_id=task_id,
         summary=f'commented on "{task.title}"',
     )
-    # Notify the people who care about this task: its creator and assignee
-    # (never the commenter themselves — notify() drops self-notifications).
-    for rid in {task.owner_id, task.assignee_id} - {None}:
+    # @mentions take precedence: mentioned members get a "mentioned you"
+    # notification, and the task's creator/assignee get the generic "commented"
+    # one only if they weren't already mentioned (no double-ping).
+    mentioned = _mentioned_user_ids(body.body, get_workspace_members(db, workspace_id))
+    mentioned.discard(current_user.id)
+    for rid in mentioned:
+        await notify(
+            db,
+            recipient_id=rid,
+            actor_id=current_user.id,
+            type="comment.mention",
+            message=f'{current_user.username} mentioned you in a comment on "{task.title}"',
+            workspace_id=workspace_id,
+        )
+    for rid in {task.owner_id, task.assignee_id} - {None} - mentioned:
         await notify(
             db,
             recipient_id=rid,
