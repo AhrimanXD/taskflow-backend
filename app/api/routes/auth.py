@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
@@ -89,10 +91,14 @@ async def refresh_token(body: TokenRefresh, db: SessionDep):
     payload = decode_access_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise invalid
-    user_id = payload.get("sub")
-    if user_id is None:
+    sub = payload.get("sub")
+    if sub is None:
         raise invalid
-    user = get_user_by_id(db, user_id=int(user_id))
+    try:
+        user_id = uuid.UUID(sub)
+    except (ValueError, TypeError):
+        raise invalid
+    user = get_user_by_id(db, user_id=user_id)
     if user is None or not user.is_active:
         raise invalid
     return _tokens_for(user)

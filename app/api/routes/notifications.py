@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.dependencies import CurrentUser, SessionDep
@@ -34,7 +35,7 @@ async def read_all(db: SessionDep, current_user: CurrentUser):
 
 @router.post("/{notification_id}/read", response_model=NotificationResponse)
 async def read_one(
-    notification_id: int, db: SessionDep, current_user: CurrentUser
+    notification_id: UUID, db: SessionDep, current_user: CurrentUser
 ):
     n = get_notification_by_id(db, notification_id)
     if not n or n.recipient_id != current_user.id:

@@ -1,8 +1,9 @@
+import uuid
 from sqlalchemy.orm import Session, joinedload
 from app.models.invitation import Invitation, InviteRole, Status
 
 
-def get_invitation_by_id(db: Session, invite_id: int) -> Invitation | None:
+def get_invitation_by_id(db: Session, invite_id: uuid.UUID) -> Invitation | None:
     return db.get(Invitation, invite_id)
 
 def get_workspace_invitations(db, workspace_id, status_filter: Status | None = None):
@@ -14,7 +15,7 @@ def get_workspace_invitations(db, workspace_id, status_filter: Status | None = N
     return query.all()
 
 
-def get_user_invitations(db: Session, user_id: int, status_filter: Status | None = None) -> list[Invitation]:
+def get_user_invitations(db: Session, user_id: uuid.UUID, status_filter: Status | None = None) -> list[Invitation]:
     query = (db.query(Invitation)
              .options(joinedload(Invitation.workspace), joinedload(Invitation.inviter))
              .filter(Invitation.invitee_id == user_id))
@@ -23,7 +24,7 @@ def get_user_invitations(db: Session, user_id: int, status_filter: Status | None
     return query.all()
 
 
-def create_invitation(db: Session, inviter_id: int, workspace_id: int, invitee_id: int, role: InviteRole) -> Invitation:
+def create_invitation(db: Session, inviter_id: uuid.UUID, workspace_id: uuid.UUID, invitee_id: uuid.UUID, role: InviteRole) -> Invitation:
     invite = Invitation(workspace_id = workspace_id, inviter_id = inviter_id, invitee_id = invitee_id, role = role)
     try:
         db.add(invite)

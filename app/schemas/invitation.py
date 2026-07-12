@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, EmailStr, ConfigDict
 from app.schemas.workspace import WorkspaceResponse
 from app.models.invitation import InviteRole, Status
@@ -11,7 +12,7 @@ class InvitationCreate(BaseModel):
 class InvitationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: UUID
     inviter: UserPublic
     role: InviteRole
     status: Status

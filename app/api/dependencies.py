@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -32,11 +34,17 @@ def get_current_user(
     if payload.get("type") == "refresh":
         raise credentials_exception
 
-    user_id: int | None = payload.get("sub")
-    if user_id is None:
+    sub: str | None = payload.get("sub")
+    if sub is None:
         raise credentials_exception
-    
-    user = get_user_by_id(db, user_id=int(user_id))
+
+    # `sub` carries the user id as a UUID string; a malformed one is a bad token.
+    try:
+        user_id = uuid.UUID(sub)
+    except (ValueError, TypeError):
+        raise credentials_exception
+
+    user = get_user_by_id(db, user_id=user_id)
     if user is None:
         raise credentials_exception
     

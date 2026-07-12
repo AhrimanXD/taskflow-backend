@@ -1,4 +1,5 @@
 from enum import Enum
+from uuid import UUID
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional
@@ -18,7 +19,7 @@ class TaskCreate(BaseModel):
     description: str | None = None
     status: TaskStatusEnum = TaskStatusEnum.PENDING
     priority: TaskPriorityEnum = TaskPriorityEnum.MEDIUM
-    assignee_id: int | None = None
+    assignee_id: UUID | None = None
     due_date: datetime | None = None
 
     @field_validator('title',mode='before')
@@ -55,7 +56,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     status: TaskStatusEnum | None = None
     priority: TaskPriorityEnum | None = None
-    assignee_id: int | None = None
+    assignee_id: UUID | None = None
     due_date: datetime | None = None
     # Optimistic-concurrency guard: the version the client last saw. Required by
     # the workspace update route; ignored by the personal (single-owner) tree.
@@ -72,14 +73,14 @@ class TaskResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: UUID
     title: str
     description: Optional[str]
     status: str
     priority: str
-    owner_id: int
-    assignee_id: int | None
-    workspace_id: int | None
+    owner_id: UUID
+    assignee_id: UUID | None
+    workspace_id: UUID | None
     due_date: datetime | None
     version: int
     created_at: datetime

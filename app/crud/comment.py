@@ -1,14 +1,15 @@
+import uuid
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate
 
 
-def get_comment_by_id(db: Session, comment_id: int) -> Comment | None:
+def get_comment_by_id(db: Session, comment_id: uuid.UUID) -> Comment | None:
     return db.query(Comment).filter(Comment.id == comment_id).first()
 
 
-def get_comments_by_task(db: Session, task_id: int) -> list[Comment]:
+def get_comments_by_task(db: Session, task_id: uuid.UUID) -> list[Comment]:
     return (
         db.query(Comment)
         .filter(Comment.task_id == task_id)
@@ -19,7 +20,7 @@ def get_comments_by_task(db: Session, task_id: int) -> list[Comment]:
 
 
 def create_comment(
-    db: Session, task_id: int, author_id: int, data: CommentCreate
+    db: Session, task_id: uuid.UUID, author_id: uuid.UUID, data: CommentCreate
 ) -> Comment:
     comment = Comment(task_id=task_id, author_id=author_id, body=data.body)
     db.add(comment)

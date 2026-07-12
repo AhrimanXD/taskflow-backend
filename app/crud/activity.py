@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.activity import Activity
@@ -6,11 +7,11 @@ from app.models.activity import Activity
 def create_activity(
     db: Session,
     *,
-    workspace_id: int,
-    actor_id: int,
+    workspace_id: uuid.UUID,
+    actor_id: uuid.UUID,
     action: str,
     object_type: str,
-    object_id: int | None,
+    object_id: uuid.UUID | None,
     summary: str,
 ) -> Activity:
     activity = Activity(
@@ -28,7 +29,7 @@ def create_activity(
 
 
 def get_workspace_activity(
-    db: Session, workspace_id: int, skip: int = 0, limit: int = 50
+    db: Session, workspace_id: uuid.UUID, skip: int = 0, limit: int = 50
 ) -> list[Activity]:
     return (
         db.query(Activity)

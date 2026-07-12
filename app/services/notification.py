@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 
 from app.crud.notification import create_notification
@@ -9,11 +10,11 @@ from app.websocket.manager import manager
 async def notify(
     db: Session,
     *,
-    recipient_id: int,
-    actor_id: int | None,
+    recipient_id: uuid.UUID,
+    actor_id: uuid.UUID | None,
     type: str,
     message: str,
-    workspace_id: int | None = None,
+    workspace_id: uuid.UUID | None = None,
 ) -> Notification | None:
     """Create a notification for one user and push it to their live channel.
     No-op when the recipient is the actor (don't notify yourself)."""

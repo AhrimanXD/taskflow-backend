@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException, status
 from pydantic import EmailStr
 from app.crud.invitation import create_invitation, get_invitation_by_id, update_invitation_status, get_user_invitations, get_workspace_invitations
@@ -11,8 +12,8 @@ from app.crud.member import get_member
 
 
 def create_invitation_service(db: Session,
-                              workspace_id: int,
-                              user_id: int,
+                              workspace_id: uuid.UUID,
+                              user_id: uuid.UUID,
                               invitee_email: EmailStr,
                               invitee_role: InviteRole):
     require_role_or_raise(db, workspace_id, user_id, allowed = {RoleEnum.ADMIN, RoleEnum.OWNER})
@@ -55,8 +56,8 @@ def get_invitation_or_raise(db: Session, invite_id):
 
 
 def decline_invitation_service(db: Session,
-                               user_id: int,
-                               invite_id: int) -> Invitation:
+                               user_id: uuid.UUID,
+                               invite_id: uuid.UUID) -> Invitation:
     invitation = get_invitation_or_raise(db, invite_id)
     if invitation.invitee_id != user_id:
         raise HTTPException(
@@ -67,8 +68,8 @@ def decline_invitation_service(db: Session,
     return update_invitation_status(db, invitation, Status.DECLINED)
 
 def revoke_invitation_service(db: Session,
-                              invite_id: int,
-                              user_id: int) -> Invitation:
+                              invite_id: uuid.UUID,
+                              user_id: uuid.UUID) -> Invitation:
     invitation = get_invitation_or_raise(db, invite_id)
     require_role_or_raise(db, invitation.workspace_id, user_id, allowed={RoleEnum.ADMIN, RoleEnum.OWNER})
     assert_pending(invitation)
@@ -76,8 +77,8 @@ def revoke_invitation_service(db: Session,
 
 
 def accept_invitation_service(db: Session,
-                              user_id: int,
-                              invite_id: int) -> Invitation:
+                              user_id: uuid.UUID,
+                              invite_id: uuid.UUID) -> Invitation:
     invitation = get_invitation_or_raise(db, invite_id)
     if invitation.invitee_id != user_id:
         raise HTTPException(

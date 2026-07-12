@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.dependencies import CurrentUser, SessionDep
@@ -52,7 +53,7 @@ async def create_new_workspace(
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
 async def get_workspace(
-    workspace_id: int,
+    workspace_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):
@@ -61,7 +62,7 @@ async def get_workspace(
 
 @router.patch("/{workspace_id}", response_model=WorkspaceResponse)
 async def update_existing_workspace(
-    workspace_id: int,
+    workspace_id: UUID,
     workspace_data: WorkspaceUpdate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -76,7 +77,7 @@ async def update_existing_workspace(
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_existing_workspace(
-    workspace_id: int,
+    workspace_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):
@@ -89,7 +90,7 @@ async def delete_existing_workspace(
 
 @router.get("/{workspace_id}/members", response_model=list[WorkspaceMemberResponse])
 async def list_workspace_members(
-    workspace_id: int, db: SessionDep, current_user: CurrentUser
+    workspace_id: UUID, db: SessionDep, current_user: CurrentUser
 ):
     return get_workspace_members_service(db, workspace_id, current_user.id)
 
@@ -98,7 +99,7 @@ async def list_workspace_members(
 # swallowed by the int path param.
 @router.delete("/{workspace_id}/members/me", status_code=status.HTTP_204_NO_CONTENT)
 async def leave_workspace(
-    workspace_id: int, db: SessionDep, current_user: CurrentUser
+    workspace_id: UUID, db: SessionDep, current_user: CurrentUser
 ):
     """Leave a workspace. The owner can't leave (409)."""
     leave_workspace_service(db, workspace_id, current_user.id)
@@ -118,7 +119,7 @@ async def leave_workspace(
     "/{workspace_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def remove_workspace_member(
-    workspace_id: int, user_id: int, db: SessionDep, current_user: CurrentUser
+    workspace_id: UUID, user_id: UUID, db: SessionDep, current_user: CurrentUser
 ):
     """Remove (kick) a member. Owner/admin only; owner is protected and admins
     can't remove other admins."""
@@ -148,8 +149,8 @@ async def remove_workspace_member(
     "/{workspace_id}/members/{user_id}", response_model=WorkspaceMemberResponse
 )
 async def change_member_role(
-    workspace_id: int,
-    user_id: int,
+    workspace_id: UUID,
+    user_id: UUID,
     body: MemberRoleUpdate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -180,7 +181,7 @@ async def change_member_role(
 
 @router.get("/{workspace_id}/activity", response_model=list[ActivityResponse])
 async def list_workspace_activity(
-    workspace_id: int,
+    workspace_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,

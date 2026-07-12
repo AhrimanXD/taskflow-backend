@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/tasks", tags=["Workspace T
 
 @router.get("", response_model=list[TaskResponse])
 async def list_workspace_tasks(
-    workspace_id: int,
+    workspace_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
     skip: int = 0,
@@ -34,7 +35,7 @@ async def list_workspace_tasks(
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_workspace_task(
-    workspace_id: int,
+    workspace_id: UUID,
     task_data: TaskCreate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -76,8 +77,8 @@ async def create_workspace_task(
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_workspace_task(
-    workspace_id: int,
-    task_id: int,
+    workspace_id: UUID,
+    task_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):
@@ -88,8 +89,8 @@ async def get_workspace_task(
 
 @router.patch("/{task_id}", response_model=TaskResponse)
 async def update_workspace_task(
-    workspace_id: int,
-    task_id: int,
+    workspace_id: UUID,
+    task_id: UUID,
     task_data: TaskUpdate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -153,8 +154,8 @@ async def update_workspace_task(
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_workspace_task(
-    workspace_id: int,
-    task_id: int,
+    workspace_id: UUID,
+    task_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):

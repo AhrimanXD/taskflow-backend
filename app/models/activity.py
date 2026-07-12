@@ -1,9 +1,12 @@
-from sqlalchemy import String, ForeignKey
+import uuid
+
+from sqlalchemy import String, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from app.core.database import Base
+from app.core.ids import uuid7
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -18,14 +21,14 @@ class Activity(Base):
 
     __tablename__ = "activities"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    workspace_id: Mapped[int] = mapped_column(
-        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid7)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("workspaces.id", ondelete="CASCADE"), index=True
     )
-    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    actor_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
     action: Mapped[str] = mapped_column(String(50))
     object_type: Mapped[str] = mapped_column(String(50))
-    object_id: Mapped[int | None] = mapped_column(nullable=True)
+    object_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     summary: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, index=True)
 

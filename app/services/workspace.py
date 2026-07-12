@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,8 +15,8 @@ from app.models.workspace_member import RoleEnum, WorkspaceMember
 
 def get_workspace_or_raise(
     db: Session,
-    workspace_id: int,
-    user_id: int,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
     require_owner: bool = False,
 ) -> Workspace:
     workspace = get_workspace_by_id(db, workspace_id)
@@ -43,8 +44,8 @@ def get_workspace_or_raise(
 
 def get_member_role_or_raise(
     db: Session,
-    workspace_id: int,
-    user_id: int,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
 ) -> RoleEnum:
     workspace = get_workspace_by_id(db, workspace_id)
     if not workspace:
@@ -61,7 +62,7 @@ def get_member_role_or_raise(
 
 
 def require_role_or_raise(
-    db: Session, workspace_id: int, user_id: int, allowed: set[RoleEnum]
+    db: Session, workspace_id: uuid.UUID, user_id: uuid.UUID, allowed: set[RoleEnum]
 ) -> RoleEnum:
     role = get_member_role_or_raise(db, workspace_id, user_id)
     if role not in allowed:
@@ -73,13 +74,13 @@ def require_role_or_raise(
 
 
 def get_workspace_members_service(
-    db: Session, workspace_id: int, user_id: int
+    db: Session, workspace_id: uuid.UUID, user_id: uuid.UUID
 ) -> list[WorkspaceMember]:
     get_member_role_or_raise(db, workspace_id, user_id)
     return get_workspace_members(db, workspace_id)
 
 
-def _member_or_404(db: Session, workspace_id: int, user_id: int) -> WorkspaceMember:
+def _member_or_404(db: Session, workspace_id: uuid.UUID, user_id: uuid.UUID) -> WorkspaceMember:
     member = get_member(db, workspace_id, user_id)
     if not member:
         raise HTTPException(
@@ -88,7 +89,7 @@ def _member_or_404(db: Session, workspace_id: int, user_id: int) -> WorkspaceMem
     return member
 
 
-def leave_workspace_service(db: Session, workspace_id: int, user_id: int) -> None:
+def leave_workspace_service(db: Session, workspace_id: uuid.UUID, user_id: uuid.UUID) -> None:
     """A member removes themselves. The owner can't leave (they'd orphan the
     workspace) — they must delete it or transfer ownership instead -> 409."""
     role = get_member_role_or_raise(db, workspace_id, user_id)
@@ -101,7 +102,7 @@ def leave_workspace_service(db: Session, workspace_id: int, user_id: int) -> Non
 
 
 def remove_member_service(
-    db: Session, workspace_id: int, actor_id: int, target_user_id: int
+    db: Session, workspace_id: uuid.UUID, actor_id: uuid.UUID, target_user_id: uuid.UUID
 ) -> None:
     """Kick a member. Owner/admin only. The owner is never removable; an admin
     may only remove plain members (not the owner or other admins). Removing
@@ -130,9 +131,9 @@ def remove_member_service(
 
 def update_member_role_service(
     db: Session,
-    workspace_id: int,
-    actor_id: int,
-    target_user_id: int,
+    workspace_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    target_user_id: uuid.UUID,
     new_role: RoleEnum,
 ) -> WorkspaceMember:
     """Promote/demote a member between admin and member. Owner only. The owner's

@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -34,7 +35,7 @@ def check_task_version_or_conflict(task: Task, expected_version: int | None) -> 
         )
 
 
-def get_personal_task_or_raise(db: Session, task_id: int, user_id: int) -> Task:
+def get_personal_task_or_raise(db: Session, task_id: uuid.UUID, user_id: uuid.UUID) -> Task:
     """Guard for the personal tree (/api/tasks/*): owner-scoped and FENCED to
     tasks with no workspace. A workspace task is invisible here (404) even to
     its creator — it lives under /api/workspaces/{id}/tasks/* instead, so each
@@ -55,9 +56,9 @@ def get_personal_task_or_raise(db: Session, task_id: int, user_id: int) -> Task:
 
 def get_workspace_task_or_raise(
     db: Session,
-    workspace_id: int,
-    task_id: int,
-    user_id: int,
+    workspace_id: uuid.UUID,
+    task_id: uuid.UUID,
+    user_id: uuid.UUID,
 ) -> tuple[Task, RoleEnum]:
     """Guard for the workspace tree. The order of checks matters:
 
@@ -84,7 +85,7 @@ def get_workspace_task_or_raise(
     return task, role
 
 
-def validate_assignee_or_raise(db: Session, workspace_id: int, assignee_id: int) -> None:
+def validate_assignee_or_raise(db: Session, workspace_id: uuid.UUID, assignee_id: uuid.UUID) -> None:
     """An assignee must be an ACTIVE member of the task's workspace.
 
     400 (not 404): the URL is fine — it's the request body that names an

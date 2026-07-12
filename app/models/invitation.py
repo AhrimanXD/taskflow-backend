@@ -1,8 +1,10 @@
+import uuid
 from typing import TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, ForeignKey, Enum, Index, text
+from sqlalchemy import ForeignKey, Enum, Index, text, Uuid
 from datetime import datetime, timezone
 from app.core.database import Base
+from app.core.ids import uuid7
 from enum import Enum as PyEnum
 
 if TYPE_CHECKING:
@@ -28,10 +30,10 @@ class Invitation(Base):
             Index("unique_pending_invite", "workspace_id", "invitee_id", unique=True, postgresql_where = text("status = 'pending'")),
             )
     
-    id : Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    workspace_id : Mapped[int] = mapped_column(ForeignKey("workspaces.id"))
-    inviter_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
-    invitee_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
+    id : Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid7)
+    workspace_id : Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("workspaces.id"))
+    inviter_id : Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    invitee_id : Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
     role : Mapped[InviteRole] = mapped_column(Enum(InviteRole, name = "invite_role_enum", values_callable = lambda x: [i.value for i in x]), default = InviteRole.MEMBER)
     status : Mapped[Status] = mapped_column(Enum(Status, name = "invite_status_enum", values_callable = lambda x: [i.value for i in x]), default=Status.PENDING)
     created_at : Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))

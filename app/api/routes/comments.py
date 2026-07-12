@@ -1,3 +1,4 @@
+from uuid import UUID
 import re
 
 from fastapi import APIRouter, HTTPException, status
@@ -25,7 +26,7 @@ router = APIRouter(
 _MENTION_RE = re.compile(r"@(\w+)")
 
 
-def _mentioned_user_ids(body: str, members) -> set[int]:
+def _mentioned_user_ids(body: str, members) -> set[UUID]:
     """Resolve @username tokens in a comment against the workspace's members
     (case-insensitive). Unknown handles are ignored."""
     by_name = {m.user.username.lower(): m.user_id for m in members}
@@ -39,7 +40,7 @@ def _mentioned_user_ids(body: str, members) -> set[int]:
 
 @router.get("", response_model=list[CommentResponse])
 async def list_comments(
-    workspace_id: int, task_id: int, db: SessionDep, current_user: CurrentUser
+    workspace_id: UUID, task_id: UUID, db: SessionDep, current_user: CurrentUser
 ):
     """List a task's comments. Any workspace member."""
     get_workspace_task_or_raise(db, workspace_id, task_id, current_user.id)
@@ -48,8 +49,8 @@ async def list_comments(
 
 @router.post("", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 async def add_comment(
-    workspace_id: int,
-    task_id: int,
+    workspace_id: UUID,
+    task_id: UUID,
     body: CommentCreate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -104,9 +105,9 @@ async def add_comment(
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_comment(
-    workspace_id: int,
-    task_id: int,
-    comment_id: int,
+    workspace_id: UUID,
+    task_id: UUID,
+    comment_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):

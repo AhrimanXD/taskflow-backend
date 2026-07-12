@@ -1,9 +1,12 @@
-from sqlalchemy import ForeignKey, UniqueConstraint, Enum
+import uuid
+
+from sqlalchemy import ForeignKey, UniqueConstraint, Enum, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import TYPE_CHECKING
 from enum import Enum as PyEnum
 from app.core.database import Base
+from app.core.ids import uuid7
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -21,9 +24,9 @@ class WorkspaceMember(Base):
         UniqueConstraint("user_id", "workspace_id", name="unique_user_workspace"),
     )
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"))
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid7)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    workspace_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("workspaces.id"))
     role: Mapped[RoleEnum] = mapped_column(Enum(RoleEnum, name = "member_role_enum", values_callable = lambda x: [i.value for i in x]), default=RoleEnum.MEMBER)
     joined_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 

@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 
 from app.crud.activity import create_activity
@@ -9,11 +10,11 @@ from app.websocket.manager import manager
 async def record_and_broadcast(
     db: Session,
     *,
-    workspace_id: int,
-    actor_id: int,
+    workspace_id: uuid.UUID,
+    actor_id: uuid.UUID,
     action: str,
     object_type: str,
-    object_id: int | None,
+    object_id: uuid.UUID | None,
     summary: str,
 ) -> Activity:
     """Persist one activity row and push it to the workspace's live feed.

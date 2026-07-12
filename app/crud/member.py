@@ -1,8 +1,9 @@
+import uuid
 from sqlalchemy.orm import Session, selectinload
 from app.models import WorkspaceMember
 
 
-def get_member(db: Session, workspace_id: int, user_id: int) -> WorkspaceMember | None:
+def get_member(db: Session, workspace_id: uuid.UUID, user_id: uuid.UUID) -> WorkspaceMember | None:
     return (
         db.query(WorkspaceMember)
         .filter(
@@ -13,7 +14,7 @@ def get_member(db: Session, workspace_id: int, user_id: int) -> WorkspaceMember 
     )
 
 
-def get_workspace_members(db: Session, workspace_id: int) -> list[WorkspaceMember]:
+def get_workspace_members(db: Session, workspace_id: uuid.UUID) -> list[WorkspaceMember]:
     return (
         db.query(WorkspaceMember)
         .filter(WorkspaceMember.workspace_id == workspace_id)

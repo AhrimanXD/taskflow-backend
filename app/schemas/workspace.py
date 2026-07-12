@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
@@ -22,15 +23,15 @@ class WorkspaceUpdate(BaseModel):
 class WorkspaceResponse(WorkspaceBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    owner_id: int
+    id: UUID
+    owner_id: UUID
     created_at: datetime
 
 
 class WorkspaceMemberResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    user_id: int
+    user_id: UUID
     role: RoleEnum
     user: UserPublic
 

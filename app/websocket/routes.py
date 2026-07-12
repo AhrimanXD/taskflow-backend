@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from app.core.security import decode_access_token
@@ -9,11 +11,14 @@ from asyncio import wait_for
 router = APIRouter()
 
 
-def websocket_auth(token: str, workspace_id: int, db: Session):
+def websocket_auth(token: str, workspace_id: uuid.UUID, db: Session):
     payload = decode_access_token(token)
     if isinstance(payload, dict):
-        user_id = payload["sub"]
-        return get_member(db, workspace_id, int(user_id))
+        try:
+            user_id = uuid.UUID(payload["sub"])
+        except (KeyError, ValueError, TypeError):
+            return None
+        return get_member(db, workspace_id, user_id)
 
 
 @router.websocket("/ws/notifications")
@@ -21,7 +26,7 @@ async def notifications_endpoint(websocket: WebSocket):
     """Per-user notification channel. First-message auth (same as the board
     socket); the token identifies the user — no room/membership check needed."""
     await websocket.accept()
-    user_id: int | None = None
+    user_id: uuid.UUID | None = None
     try:
         auth_message = await wait_for(websocket.receive_json(), timeout=15.0)
         if auth_message.get("type") != "auth":
@@ -37,7 +42,10 @@ async def notifications_endpoint(websocket: WebSocket):
             and payload.get("type") != "refresh"
             and payload.get("sub")
         ):
-            user_id = int(payload["sub"])
+            try:
+                user_id = uuid.UUID(payload["sub"])
+            except (ValueError, TypeError):
+                user_id = None
         if user_id is None:
             await websocket.send_json({"type": "error", "detail": "Unauthorized"})
             await websocket.close()
@@ -60,7 +68,7 @@ async def notifications_endpoint(websocket: WebSocket):
 
 
 @router.websocket("/ws/workspaces/{workspace_id}")
-async def websocket_endpoint(websocket: WebSocket, workspace_id: int):
+async def websocket_endpoint(websocket: WebSocket, workspace_id: uuid.UUID):
     # accept connection
     await websocket.accept()
     # wait for authentication message and set timeout

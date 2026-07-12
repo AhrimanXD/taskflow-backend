@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from sqlalchemy import func, or_
@@ -11,7 +12,7 @@ _STATUSES = ["pending", "ongoing", "completed"]
 _PRIORITIES = ["low", "medium", "high"]
 
 
-def get_overview(db: Session, user_id: int) -> dict:
+def get_overview(db: Session, user_id: uuid.UUID) -> dict:
     """Personal overview for the home dashboard. 'My tasks' = tasks I own
     (personal) or am assigned (in any workspace)."""
     mine = or_(Task.owner_id == user_id, Task.assignee_id == user_id)

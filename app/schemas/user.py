@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from datetime import datetime
 
@@ -27,7 +28,7 @@ class PasswordChange(BaseModel):
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: UUID
     email: str
     username: str
     created_at: datetime
@@ -35,7 +36,7 @@ class UserResponse(BaseModel):
 class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
-    id: int
+    id: UUID
     username: str
 
 class Token(BaseModel):
@@ -49,4 +50,4 @@ class TokenRefresh(BaseModel):
 
 
 class TokenData(BaseModel):
-    user_id: int | None = None
+    user_id: UUID | None = None
