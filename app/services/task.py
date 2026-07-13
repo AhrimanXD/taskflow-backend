@@ -1,3 +1,4 @@
+import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -5,10 +6,36 @@ from app.crud.member import get_member
 from app.crud.task import get_task_by_id
 from app.models.task import Task
 from app.models.workspace_member import RoleEnum
+from app.schemas.task import TaskResponse
 from app.services.workspace import get_member_role_or_raise
 
 
-def get_personal_task_or_raise(db: Session, task_id: int, user_id: int) -> Task:
+def check_task_version_or_conflict(task: Task, expected_version: int | None) -> None:
+    """Optimistic-concurrency pre-check for workspace task edits.
+
+    The client must send the `version` it last saw. If it's missing -> 400
+    (the client didn't opt into OCC). If it's stale -> 409 with the *current*
+    task in the body, so the frontend can show 'this changed — review & retry'
+    instead of silently clobbering the other member's edit. The true
+    read-then-commit race is still caught separately by version_id_col
+    (StaleDataError) in the route.
+    """
+    if expected_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="version is required for workspace task updates",
+        )
+    if task.version != expected_version:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "This task was changed by someone else. Please review and retry.",
+                "current": TaskResponse.model_validate(task).model_dump(mode="json"),
+            },
+        )
+
+
+def get_personal_task_or_raise(db: Session, task_id: uuid.UUID, user_id: uuid.UUID) -> Task:
     """Guard for the personal tree (/api/tasks/*): owner-scoped and FENCED to
     tasks with no workspace. A workspace task is invisible here (404) even to
     its creator — it lives under /api/workspaces/{id}/tasks/* instead, so each
@@ -29,9 +56,9 @@ def get_personal_task_or_raise(db: Session, task_id: int, user_id: int) -> Task:
 
 def get_workspace_task_or_raise(
     db: Session,
-    workspace_id: int,
-    task_id: int,
-    user_id: int,
+    workspace_id: uuid.UUID,
+    task_id: uuid.UUID,
+    user_id: uuid.UUID,
 ) -> tuple[Task, RoleEnum]:
     """Guard for the workspace tree. The order of checks matters:
 
@@ -58,7 +85,7 @@ def get_workspace_task_or_raise(
     return task, role
 
 
-def validate_assignee_or_raise(db: Session, workspace_id: int, assignee_id: int) -> None:
+def validate_assignee_or_raise(db: Session, workspace_id: uuid.UUID, assignee_id: uuid.UUID) -> None:
     """An assignee must be an ACTIVE member of the task's workspace.
 
     400 (not 404): the URL is fine — it's the request body that names an

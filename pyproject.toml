@@ -11,5 +11,6 @@ dependencies = [
     "psycopg2>=2.9.11",
     "pyjwt>=2.11.0",
     "sqlalchemy>=2.0.46",
+    "uuid-utils>=0.17.0",
     "uvicorn>=0.40.0",
 ]

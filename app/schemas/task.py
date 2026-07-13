@@ -1,4 +1,5 @@
 from enum import Enum
+from uuid import UUID
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional
@@ -8,11 +9,17 @@ class TaskStatusEnum(str, Enum):
     ONGOING = "ongoing"
     COMPLETED = "completed"
 
+class TaskPriorityEnum(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
 class TaskCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=255) 
+    title: str = Field(min_length=1, max_length=255)
     description: str | None = None
     status: TaskStatusEnum = TaskStatusEnum.PENDING
-    assignee_id: int | None = None
+    priority: TaskPriorityEnum = TaskPriorityEnum.MEDIUM
+    assignee_id: UUID | None = None
     due_date: datetime | None = None
 
     @field_validator('title',mode='before')
@@ -48,9 +55,13 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: TaskStatusEnum | None = None
-    assignee_id: int | None = None
+    priority: TaskPriorityEnum | None = None
+    assignee_id: UUID | None = None
     due_date: datetime | None = None
-    
+    # Optimistic-concurrency guard: the version the client last saw. Required by
+    # the workspace update route; ignored by the personal (single-owner) tree.
+    version: int | None = None
+
 
     @field_validator("title", "description", mode="before")
     @classmethod
@@ -62,14 +73,16 @@ class TaskResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: UUID
     title: str
     description: Optional[str]
     status: str
-    owner_id: int
-    assignee_id: int | None
-    workspace_id: int | None
+    priority: str
+    owner_id: UUID
+    assignee_id: UUID | None
+    workspace_id: UUID | None
     due_date: datetime | None
+    version: int
     created_at: datetime
     updated_at: datetime
 

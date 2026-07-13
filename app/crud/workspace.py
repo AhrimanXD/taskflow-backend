@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -6,13 +7,13 @@ from app.models.workspace_member import WorkspaceMember
 from app.schemas.workspace import WorkspaceCreate
 
 
-def get_workspace_by_id(db: Session, workspace_id: int) -> Workspace | None:
+def get_workspace_by_id(db: Session, workspace_id: uuid.UUID) -> Workspace | None:
     return db.query(Workspace).filter(Workspace.id == workspace_id).first()
 
 
 def get_workspaces_by_user(
     db: Session,
-    user_id: int,
+    user_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100
 ) -> list[Workspace]:
@@ -32,7 +33,7 @@ def get_workspaces_by_user(
     )
 
 
-def create_workspace(db: Session, workspace_data: WorkspaceCreate, owner_id: int) -> Workspace:
+def create_workspace(db: Session, workspace_data: WorkspaceCreate, owner_id: uuid.UUID) -> Workspace:
     db_workspace = Workspace(
         name=workspace_data.name,
         description=workspace_data.description,

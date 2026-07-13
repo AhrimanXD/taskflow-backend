@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import *
+from app.websocket import routes as ws_routes
 # from app.core.database import engine, Base
 
 # Create database tables
@@ -9,7 +10,7 @@ from app.api.routes import *
 app = FastAPI(
     title="Realtime Collaborative Task Manager",
     description="A collaborative task management API with real-time updates",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # CORS configuration
@@ -27,6 +28,10 @@ app.include_router(tasks.router, prefix="/api/tasks", tags=["Tasks"])
 app.include_router(workspace.router, prefix="/api/workspaces", tags=["Workspaces"])
 app.include_router(invitation.router, prefix="/api")
 app.include_router(workspace_tasks.router, prefix="/api")
+app.include_router(comments.router, prefix="/api")
+app.include_router(stats.router, prefix="/api/stats", tags=["Stats"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+app.include_router(ws_routes.router)  # WS path already starts with /ws — no prefix
 
 
 @app.get("/")

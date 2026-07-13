@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from app.api.dependencies import CurrentUser, SessionDep
@@ -27,7 +28,7 @@ router = APIRouter(tags=["invitations"])
     status_code=status.HTTP_201_CREATED,
 )
 async def create_invitation(
-    workspace_id: int,
+    workspace_id: UUID,
     payload: InvitationCreate,
     db: SessionDep,
     current_user: CurrentUser,
@@ -46,7 +47,7 @@ async def create_invitation(
     response_model=list[InvitationForWorkspace],
 )
 async def list_workspace_invitations(
-    workspace_id: int,
+    workspace_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
     status_filter: InviteStatus | None = Query(default=None, alias="status"),
@@ -64,7 +65,7 @@ async def list_workspace_invitations(
     response_model=InvitationForWorkspace,
 )
 async def revoke_invitation(
-    invite_id: int,
+    invite_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):
@@ -86,7 +87,7 @@ async def list_my_invitations(
 
 @router.post("/invitations/{invite_id}/accept", response_model=InvitationReceived)
 async def accept_invitation(
-    invite_id: int,
+    invite_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):
@@ -95,7 +96,7 @@ async def accept_invitation(
 
 @router.post("/invitations/{invite_id}/decline", response_model=InvitationReceived)
 async def decline_invitation(
-    invite_id: int,
+    invite_id: UUID,
     db: SessionDep,
     current_user: CurrentUser,
 ):

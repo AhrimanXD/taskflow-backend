@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.models.user import User
@@ -5,7 +6,7 @@ from app.schemas.user import UserCreate
 from app.core.security import get_password_hash, verify_password
 
 
-def get_user_by_id(db: Session, user_id: int) -> User | None:
+def get_user_by_id(db: Session, user_id: uuid.UUID) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
@@ -40,4 +41,25 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
         return None
     if not verify_password(password, user.hashed_password):
         return None
+    return user
+
+
+def update_user(db: Session, user: User, fields: dict) -> User:
+    """Apply a partial profile update. Uniqueness is checked by the route before
+    calling this; IntegrityError is re-raised as a last-resort guard."""
+    for field, value in fields.items():
+        setattr(user, field, value)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+    db.refresh(user)
+    return user
+
+
+def change_password(db: Session, user: User, new_password: str) -> User:
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    db.refresh(user)
     return user

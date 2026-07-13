@@ -1,9 +1,12 @@
-from sqlalchemy import String
+import uuid
+
+from sqlalchemy import String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, TYPE_CHECKING
 
 from app.core.database import Base
+from app.core.ids import uuid7
 
 if TYPE_CHECKING:
     from app.models.workspace import Workspace
@@ -15,7 +18,7 @@ if TYPE_CHECKING:
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid7)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))

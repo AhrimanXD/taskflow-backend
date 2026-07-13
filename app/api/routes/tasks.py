@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.dependencies import SessionDep, CurrentUser
@@ -36,7 +37,7 @@ async def create_new_task(
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
-    task_id: int,
+    task_id: UUID,
     db: SessionDep,
     current_user: CurrentUser
 ):
@@ -46,7 +47,7 @@ async def get_task(
 
 @router.patch("/{task_id}", response_model=TaskResponse)
 async def update_existing_task(
-    task_id: int,
+    task_id: UUID,
     task_data: TaskUpdate,
     db: SessionDep,
     current_user: CurrentUser
@@ -64,7 +65,7 @@ async def update_existing_task(
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_existing_task(
-    task_id: int,
+    task_id: UUID,
     db: SessionDep,
     current_user: CurrentUser
 ):
